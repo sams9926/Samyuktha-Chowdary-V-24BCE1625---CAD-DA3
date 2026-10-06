@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VaultTrace Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="topbar">
+    <h2>🔐 VaultTrace</h2>
+    <div class="row">
+      <span id="who" class="muted"></span>
+      <button id="logout">Logout</button>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <h3>Buckets</h3>
+
+    <p class="muted">
+      A bucket is a container for files, like an S3 bucket.
+      Name: 3-63 chars, lowercase letters, digits, hyphens.
+    </p>
+
+    <div class="row">
+      <input id="bName" type="text" placeholder="bucket-name">
+
+      <input
+        id="bDays"
+        type="number"
+        min="1"
+        placeholder="Auto-delete after N days (optional)"
+      >
+
+      <label class="inline">
+        <input id="bVer" type="checkbox" checked>
+        Versioning
+      </label>
+
+      <button id="bCreate">Create bucket</button>
+    </div>
+
+    <p id="bMsg" class="msg"></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Files</th>
+          <th>Versioning</th>
+          <th>Auto-delete</th>
+        </tr>
+      </thead>
+
+      <tbody id="buckets"></tbody>
+    </table>
+  </div>
+
+
+  <div class="card hidden" id="filesCard">
+
+    <h3>
+      Files in <span id="curBucket"></span>
+    </h3>
+
+    <div class="row">
+
+      <label class="inline">
+        <input id="sVer" type="checkbox">
+        Versioning
+      </label>
+
+      <input
+        id="sDays"
+        type="number"
+        min="1"
+        placeholder="Auto-delete after N days (blank = never)"
+      >
+
+      <button id="sSave">
+        Save bucket settings
+      </button>
+
+    </div>
+
+    <p id="sMsg" class="msg"></p>
+
+    <div class="row">
+
+      <input
+        id="fileInput"
+        type="file"
+        multiple
+        accept=".png,.jpg,.jpeg,.webp,.txt"
+      >
+
+      <button id="upBtn">
+        Upload
+      </button>
+
+    </div>
+
+    <p id="fMsg" class="msg"></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Latest</th>
+          <th>Versions</th>
+          <th>Size</th>
+          <th>Uploaded</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody id="files"></tbody>
+    </table>
+
+  </div>
+
+
+  <div class="card hidden" id="verCard">
+
+    <div class="row" style="justify-content:space-between">
+
+      <h3>
+        Version history:
+        <span id="curObject"></span>
+      </h3>
+
+      <button id="verClose">
+        Close
+      </button>
+
+    </div>
+
+    <p id="vMsg" class="msg"></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Version</th>
+          <th>Size</th>
+          <th>Uploaded</th>
+          <th>Checksum</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody id="versions"></tbody>
+    </table>
+
+  </div>
+
+<div class="card hidden" id="shareCard">
+
+    <div class="row between">
+        <div>
+            <h2> Share document</h2>
+            <p class="muted" id="shLabel"></p>
+        </div>
+
+        <button id="shClose">Close</button>
+    </div>
+
+    <label>
+        Recipient
+        <input
+            id="shRecipient"
+            type="email"
+            placeholder="recipient@example.com"
+        >
+    </label>
+
+    <label>
+        Link expiry
+        <select id="shHours">
+            <option value="1">1 hour</option>
+            <option value="24" selected>24 hours</option>
+            <option value="72">72 hours</option>
+            <option value="168">7 days</option>
+        </select>
+    </label>
+
+    <label>
+        Maximum views
+        <input
+            id="shViews"
+            type="number"
+            min="1"
+            max="100"
+            value="3"
+        >
+    </label>
+
+    <label>
+        <input id="shEmail" type="checkbox">
+        Send link by email
+    </label>
+
+    <button id="shCreate" class="primary">
+        Create share link
+    </button>
+
+    <p id="shMsg" class="msg"></p>
+
+    <div id="shResult" class="hidden">
+
+        <label>
+            Share link
+            <input id="shLink" readonly>
+        </label>
+
+        <button id="shCopy">
+            Copy link
+        </button>
+
+    </div>
+
+</div>
+
+
+<div class="card">
+
+    <h2> Shared links</h2>
+
+    <div class="tablewrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Recipient</th>
+                    <th>Document</th>
+                    <th>Views</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="shares">
+                <tr>
+                    <td colspan="6" class="muted">
+                        No links yet.
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="card">
+  <h3> Leak tracer</h3>
+
+  <p class="muted">
+    Found a file you shared somewhere it shouldn't be?
+    Upload it here (PNG, JPG, WEBP or .txt) and VaultTrace
+    reads the hidden fingerprint to identify which recipient's copy it is.
+  </p>
+
+  <div class="row">
+    <input
+      id="trFile"
+      type="file"
+      accept=".png,.jpg,.jpeg,.webp,.txt"
+    >
+
+    <button id="trRun">
+      Trace this file
+    </button>
+  </div>
+
+  <p id="trMsg" class="msg"></p>
+
+  <div id="trResult"></div>
+</div>
+
+<div class="card">
+  <h3> Audit log</h3>
+  <p class="muted">Every action is chained: each entry contains the fingerprint (hash) of the one before it. Edit or delete any past entry and every later fingerprint stops matching.</p>
+  <div class="row">
+    <select id="auFilter" style="width:auto"><option value="">All actions</option></select>
+    <button id="auRefresh">Refresh</button>
+    <button id="auVerify" class="primary" style="width:auto; margin-top:0">Verify integrity</button>
+    <button id="auPin">Pin checkpoint</button>
+  </div>
+  <div id="auBanner" class="banner hidden"></div>
+  <p id="auCp" class="muted" style="font-size:13px"></p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Time</th>
+        <th>Actor</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Details</th>
+        <th>Hash</th>
+      </tr>
+    </thead>
+    <tbody id="auditRows"></tbody>
+  </table>
+</div>
+
+  <div class="card">
+
+    <h3> Lifecycle time machine</h3>
+
+    <p class="muted">
+      Pretend N days have passed and apply every bucket's auto-delete rule.
+      Preview shows what would expire; Run actually deletes it.
+    </p>
+
+    <div class="row">
+
+      <input
+        id="tmDays"
+        type="number"
+        min="0"
+        value="30"
+        placeholder="Days to fast-forward"
+      >
+
+      <button id="tmPreview">
+        Preview
+      </button>
+
+      <button id="tmRun" class="danger">
+        Run now
+      </button>
+
+    </div>
+
+    <p id="tmMsg" class="msg"></p>
+
+    <ul id="tmList" class="tmlist"></ul>
+
+  </div>
+
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+  <script src="share.js"></script>
+  <script src="trace.js"></script>
+  <script src="audit.js"></script>
+
+</body>
+</html>

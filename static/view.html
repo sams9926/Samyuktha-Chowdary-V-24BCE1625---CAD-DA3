@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Shared document</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="card" style="max-width:680px; margin-top:8vh">
+
+<h1>🔐 VaultTrace</h1>
+
+<p id="status" class="muted">Checking link…</p>
+
+<div id="info" class="hidden">
+
+<p class="muted">A document was shared with you:</p>
+
+<h2 id="fname"></h2>
+
+<p id="meta" class="muted"></p>
+
+<button id="openBtn" class="primary">
+    Open document (uses 1 view)
+</button>
+
+</div>
+
+<p id="msg" class="msg"></p>
+
+<div id="doc" class="viewbox"></div>
+
+<p id="foot" class="muted hidden" style="font-size:13px">
+This copy is personal to you and every access is logged.
+Sharing it further can be traced back to you.
+</p>
+
+</div>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+const sid =
+    location.pathname
+        .split("/")
+        .filter(Boolean)
+        .pop();
+
+const p = new URLSearchParams(location.search);
+
+const q =
+    "e=" + encodeURIComponent(p.get("e") || "") +
+    "&sig=" + encodeURIComponent(p.get("sig") || "");
+
+
+const REASONS = {
+    expired: "This link has expired.",
+    revoked: "The sender has revoked access to this document.",
+    exhausted: "This link has reached its view limit.",
+    gone: "This document is no longer available."
+};
+
+
+function fail(text) {
+
+    $("status").textContent = "";
+
+    $("info").classList.add("hidden");
+
+    $("msg").className = "msg err";
+
+    $("msg").textContent = text;
+
+}
+
+
+async function init() {
+
+    try {
+
+        const res =
+            await fetch(`/api/s/${sid}/info?${q}`);
+
+        if (!res.ok)
+            return fail("This link is invalid.");
+
+        const d = await res.json();
+
+        if (d.state !== "active")
+            return fail(
+                REASONS[d.state] ||
+                "This link is not available."
+            );
+
+        $("status").textContent = "";
+
+        $("fname").textContent = d.file_name;
+
+        $("meta").textContent =
+            `Expires ${
+                new Date(d.expires_at * 1000)
+                .toLocaleString()
+            } · ${d.views_left} view(s) left`;
+
+        $("info").classList.remove("hidden");
+
+    }
+
+    catch (e) {
+
+        fail("Could not reach the server.");
+
+    }
+
+}
+
+
+$("openBtn").onclick = async () => {
+
+    $("openBtn").disabled = true;
+
+    try {
+
+        const res =
+            await fetch(
+                `/api/s/${sid}/open?${q}`,
+                { method: "POST" }
+            );
+
+        if (!res.ok) {
+
+            let m =
+                "This link is no longer available.";
+
+            try {
+
+                m =
+                    (await res.json()).detail ||
+                    m;
+
+            }
+
+            catch (e) {}
+
+            return fail(m);
+
+        }
+
+        const left =
+            res.headers.get("X-Views-Left");
+
+        const type =
+            res.headers.get("Content-Type") || "";
+
+        const blob =
+            await res.blob();
+
+        const box = $("doc");
+
+        box.innerHTML = "";
+
+
+        if (type.startsWith("image/")) {
+
+            const img = new Image();
+
+            img.src =
+                URL.createObjectURL(blob);
+
+            box.appendChild(img);
+
+        }
+
+        else {
+
+            const pre =
+                document.createElement("pre");
+
+            pre.className = "doc";
+
+            pre.textContent =
+                await blob.text();
+
+            box.appendChild(pre);
+
+        }
+
+
+        $("info").classList.add("hidden");
+
+        $("foot").classList.remove("hidden");
+
+        $("msg").className = "msg ok";
+
+        $("msg").textContent =
+            `Opened. ${left} view(s) left on this link. Reloading and opening again uses another view.`;
+
+    }
+
+    catch (e) {
+
+        fail("Could not reach the server.");
+
+    }
+
+};
+
+
+init();
+
+</script>
+
+</body>
+</html>

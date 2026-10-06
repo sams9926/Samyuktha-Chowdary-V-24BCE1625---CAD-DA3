@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VaultTrace</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="card auth">
+
+    <h1>🔐 VaultTrace</h1>
+
+    <p class="muted">
+      Share documents. Keep control. Trace leaks.
+    </p>
+
+    <div class="tabs">
+      <button id="tabLogin" class="active">Login</button>
+      <button id="tabReg">Register</button>
+    </div>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="Email"
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Password (6+ characters)"
+    >
+
+    <button id="go" class="primary">
+      Login
+    </button>
+
+    <p id="msg" class="msg"></p>
+
+  </div>
+
+  <script src="api.js"></script>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    let mode = "login";
+
+    function setMode(m) {
+      mode = m;
+
+      $("tabLogin").classList.toggle(
+        "active",
+        m === "login"
+      );
+
+      $("tabReg").classList.toggle(
+        "active",
+        m === "register"
+      );
+
+      $("go").textContent =
+        m === "login"
+          ? "Login"
+          : "Create account";
+
+      $("msg").textContent = "";
+    }
+
+    $("tabLogin").onclick = () => setMode("login");
+
+    $("tabReg").onclick = () => setMode("register");
+
+    $("go").onclick = async () => {
+
+      const body = JSON.stringify({
+        email: $("email").value,
+        password: $("password").value
+      });
+
+      try {
+
+        if (mode === "register") {
+
+          await api("/register", {
+            method: "POST",
+            body
+          });
+
+          setMode("login");
+
+          $("msg").className = "msg ok";
+
+          $("msg").textContent =
+            "Account created. Now log in.";
+
+          return;
+        }
+
+        const d = await api("/login", {
+          method: "POST",
+          body
+        });
+
+        localStorage.setItem(
+          "token",
+          d.token
+        );
+
+        location.href = "/app.html";
+
+      } catch (e) {
+
+        $("msg").className = "msg err";
+
+        $("msg").textContent = e.message;
+
+      }
+    };
+  </script>
+
+</body>
+</html>
